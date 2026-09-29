@@ -718,15 +718,19 @@
       return m ? m[1].trim() : title;
     }
 
-    function syncDayTitles() {
-      days.forEach((d, i) => {
-        d.num = i + 1;
-        const label = d.label || stripDateFromTitle(d.title) || ('Day ' + d.num);
-        d.label = label;
-        const datePart = dateForDayIndex(i);
-        d.title = datePart ? (datePart + ' · ' + label) : label;
-      });
+function syncDayTitles() {
+  days.forEach((d, i) => {
+    d.num = i + 1;
+    let label = d.label || stripDateFromTitle(d.title) || '';
+    // Default "Day N" labels track the current position after move/delete
+    if (!label || /^Day\s+\d+$/i.test(label.trim())) {
+      label = 'Day ' + d.num;
     }
+    d.label = label;
+    const datePart = dateForDayIndex(i);
+    d.title = datePart ? (datePart + ' · ' + label) : label;
+  });
+}
 
     function updateDateHint() {
       const hint = document.getElementById('date-hint');
