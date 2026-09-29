@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trip Plan</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --surface: #151e2e;
+      --surface-2: #1e293b;
+      --surface-3: #273549;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --nature: #34d399;
+      --culture: #a78bfa;
+      --food: #fb923c;
+      --relax: #f472b6;
+      --drive: #64748b;
+      --border: #2a3548;
+      --shadow: 0 4px 20px rgba(0,0,0,0.4);
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    header {
+      background: linear-gradient(135deg, #0c4a6e, #1e3a5f 60%, #0b1220);
+      padding: 0.75rem 1.1rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.65rem;
+      justify-content: space-between;
+    }
+    header h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      outline: none;
+      border-radius: 4px;
+      padding: 0.1rem 0.35rem;
+      cursor: text;
+      min-width: 8rem;
+    }
+    header h1:hover { background: rgba(56,189,248,0.1); }
+    header h1:focus {
+      background: rgba(56,189,248,0.18);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .header-meta label {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .header-meta input[type="date"] {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.25rem 0.4rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-family: inherit;
+    }
+    .header-actions { display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center; }
+    .btn {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: var(--accent); color: #0b1220; border-color: var(--accent); }
+    .btn.primary {
+      background: rgba(56,189,248,0.15);
+      color: var(--accent);
+      border-color: rgba(56,189,248,0.35);
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn:disabled:hover {
+      background: var(--surface-2);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .board-hscroll {
+      height: 18px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 0.65rem;
+      gap: 0.45rem;
+      box-sizing: border-box;
+    }
+    .board-hscroll-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .board-hscroll-track {
+      flex: 1;
+      height: 12px;
+      overflow-x: scroll;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent) var(--surface-2);
+    }
+    .board-hscroll-track::-webkit-scrollbar { height: 10px; }
+    .board-hscroll-track::-webkit-scrollbar-track {
+      background: var(--surface-2);
+      border-radius: 5px;
+    }
+    .board-hscroll-track::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 5px;
+      border: none;
+      min-width: 40px;
+    }
+    .board-hscroll-track::-webkit-scrollbar-thumb:hover { background: #7dd3fc; }
+    .board-hscroll-spacer { height: 1px; pointer-events: none; }
+
+    .board-wrap {
+      overflow-x: auto;
+      overflow-y: auto;
+      padding: 0.65rem 0.85rem 1.1rem;
+      height: calc(100vh - 120px);
+      min-height: 240px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent) var(--surface-2);
+    }
+    .board-wrap::-webkit-scrollbar { height: 8px; width: 8px; }
+    .board-wrap::-webkit-scrollbar-track { background: var(--surface-2); }
+    .board-wrap::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 4px;
+    }
+    .board {
+      display: flex;
+      gap: 0.7rem;
+      min-width: max-content;
+      height: auto;
+      align-items: flex-start;
+      padding-bottom: 0.5rem;
+    }
+
+    .day-col, .pool-col {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: auto;
+      max-height: none;
+      position: relative;
+    }
+    .pool-col { border-style: dashed; }
+    .day-col.bound-left {
+      border-color: rgba(52, 211, 153, 0.55);
+      box-shadow: 2px 0 0 rgba(52, 211, 153, 0.35);
+    }
+    .day-col.bound-right {
+      border-color: rgba(52, 211, 153, 0.55);
+    }
+    .day-col-header {
+      padding: 0.7rem 0.75rem;
+      background: linear-gradient(90deg, rgba(56,189,248,0.12), transparent);
+      border-bottom: 1px solid var(--border);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .pool-col .day-col-header { background: rgba(148, 163, 184, 0.1); }
+    .day-col-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.35rem;
+    }
+    .day-col-header h2 {
+      font-size: 0.9rem;
+      font-weight: 650;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex: 1;
+      min-width: 0;
+    }
+    .day-move-btns {
+      display: flex;
+      gap: 0.15rem;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .day-move-btn, .day-bind-btn, .day-del-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      min-width: 24px;
+      height: 24px;
+      padding: 0 0.35rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .day-move-btn:hover:not(:disabled),
+    .day-bind-btn:hover:not(:disabled),
+    .day-del-btn:hover:not(:disabled) {
+      background: var(--accent);
+      color: #0b1220;
+      border-color: var(--accent);
+    }
+    .day-del-btn:hover:not(:disabled) {
+      background: #f87171;
+      border-color: #f87171;
+      color: #0b1220;
+    }
+    .day-bind-btn.bound {
+      background: rgba(52, 211, 153, 0.2);
+      border-color: rgba(52, 211, 153, 0.5);
+      color: var(--nature);
+    }
+    .day-move-btn:disabled, .day-bind-btn:disabled, .day-del-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .day-num {
+      background: var(--accent);
+      color: #0b1220;
+      width: 1.55rem;
+      height: 1.55rem;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .day-sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+    .bind-badge {
+      display: inline-block;
+      font-size: 0.62rem;
+      color: var(--nature);
+      margin-top: 0.2rem;
+      font-weight: 600;
+    }
+    .day-title-edit, .day-sub-edit {
+      outline: none;
+      border-radius: 4px;
+      padding: 0 0.15rem;
+      cursor: text;
+    }
+    .day-title-edit:hover, .day-sub-edit:hover { background: rgba(56,189,248,0.1); }
+    .day-title-edit:focus, .day-sub-edit:focus {
+      background: rgba(56,189,248,0.18);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    h2 .day-title-edit { font-size: inherit; font-weight: inherit; }
+
+    .pool-add-zone { padding: 0.4rem 0.5rem 0; }
+    .pool-add-btn, .slot-add-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--text-muted);
+      padding: 0.4rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pool-add-btn:hover, .slot-add-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(56,189,248,0.06);
+    }
+    .slot-add-btn {
+      margin-top: 0.25rem;
+      padding: 0.3rem;
+      font-size: 0.72rem;
+    }
+
+    .slots {
+      flex: 1;
+      overflow-y: visible;
+      padding: 0.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .slot {
+      background: var(--surface-2);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      min-height: auto;
+      padding: 0.4rem;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .slot.drag-over {
+      background: rgba(56,189,248,0.12);
+      border-color: var(--accent);
+      border-style: solid;
+    }
+    .slot-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.3rem;
+      padding: 0 0.1rem;
+    }
+    .pool-col .slot-label { display: none; }
+    .pool-col .slot {
+      border: none;
+      background: transparent;
+      padding: 0.15rem;
+      min-height: 48px;
+    }
+    .slot-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-height: 28px;
+    }
+
+    .memo {
+      background: var(--surface-3);
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      padding: 0.45rem 0.55rem;
+      cursor: grab;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
+      user-select: none;
+      position: relative;
+    }
+    .memo:active { cursor: grabbing; }
+    .memo.dragging { opacity: 0.55; transform: scale(0.97); }
+    .memo.nature { border-left-color: var(--nature); }
+    .memo.culture { border-left-color: var(--culture); }
+    .memo.food { border-left-color: var(--food); }
+    .memo.relax { border-left-color: var(--relax); }
+    .memo.drive { border-left-color: var(--drive); }
+
+    .memo-time {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 0.12rem;
+    }
+    .memo-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 0.08rem;
+    }
+    .memo-note {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+    .memo-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.2rem;
+      margin-top: 0.25rem;
+    }
+    .memo-tag {
+      font-size: 0.58rem;
+      padding: 0.08rem 0.35rem;
+      border-radius: 999px;
+      font-weight: 500;
+      background: rgba(255,255,255,0.06);
+      color: var(--text-muted);
+    }
+    .memo-actions {
+      position: absolute;
+      top: 0.2rem;
+      right: 0.25rem;
+      display: none;
+      gap: 0.12rem;
+    }
+    .memo:hover .memo-actions { display: flex; }
+    .memo-btn {
+      background: rgba(0,0,0,0.35);
+      border: none;
+      color: var(--text-muted);
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .memo-btn:hover { color: #fff; background: rgba(0,0,0,0.55); }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: var(--shadow);
+    }
+    .modal h3 { font-size: 1.05rem; margin-bottom: 1rem; }
+    .form-group { margin-bottom: 0.85rem; }
+    .form-group label {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+    }
+    .form-group textarea { min-height: 60px; resize: vertical; }
+    .form-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .summary-modal .modal {
+      max-width: 480px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .summary-modal textarea {
+      width: 100%;
+      min-height: 280px;
+      max-height: 55vh;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      line-height: 1.45;
+      resize: vertical;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.65rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      z-index: 200;
+      transition: transform 0.25s;
+      box-shadow: var(--shadow);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 700px) {
+      .day-col, .pool-col { width: 240px; }
+      header h1 { font-size: 1.05rem; }
+      .board-wrap { height: calc(100vh - 130px); }
+    }
+    @media print {
+      .header-actions, .memo-actions, .day-move-btns, .board-hscroll, .pool-add-zone, .slot-add-btn { display: none !important; }
+      .board-wrap { overflow: visible; height: auto; }
+      .board { flex-wrap: wrap; }
+      .day-col, .pool-col { break-inside: avoid; max-height: none; }
+      .slots { overflow: visible; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1 id="plan-title" contenteditable="true" spellcheck="false">Trip Plan</h1>
+      <div class="header-meta">
+        <label>Start <input type="date" id="date-start" /></label>
+        <label>End <input type="date" id="date-end" /></label>
+        <span id="date-hint" style="opacity:0.7;"></span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="btn-add-day" onclick="addDay()">+ Day</button>
+      <button class="btn" onclick="resetBoard()">Reset</button>
+      <button class="btn primary" onclick="openAddModalForNew()">+ New</button>
+      <button class="btn primary" onclick="exportSummary()">Export summary</button>
+      <button class="btn primary" onclick="openImportModal()">Import summary</button>
+      <button class="btn primary" onclick="exportImage()">Export PNG</button>
+    </div>
+  </header>
+
+  <div class="board-hscroll" id="board-hscroll">
+    <span class="board-hscroll-label">Scroll</span>
+    <div class="board-hscroll-track" id="board-hscroll-track">
+      <div class="board-hscroll-spacer" id="board-hscroll-spacer"></div>
+    </div>
+  </div>
+
+  <div class="board-wrap" id="board-wrap">
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h3 id="modal-title">Edit activity</h3>
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="f-title" placeholder="e.g. Activity name" />
+      </div>
+      <div class="form-group">
+        <label>Note</label>
+        <textarea id="f-note" placeholder="Optional short note"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Start time (optional)</label>
+          <input type="time" id="f-start" />
+        </div>
+        <div class="form-group">
+          <label>End time (optional)</label>
+          <input type="time" id="f-end" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="f-type">
+          <option value="nature">Nature</option>
+          <option value="culture">Culture</option>
+          <option value="food">Food</option>
+          <option value="relax">Relax</option>
+          <option value="drive">Transit</option>
+        </select>
+      </div>
+      <div class="form-group" id="f-period-wrap">
+        <label>Section</label>
+        <select id="f-period">
+          <option value="am">AM</option>
+          <option value="pm">PM</option>
+        </select>
+      </div>
+      <div class="form-group" id="f-day-wrap" style="display:none;">
+        <label>Place</label>
+        <select id="f-day"></select>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn primary" onclick="saveMemo()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay summary-modal" id="summary-modal">
+    <div class="modal">
+      <h3>Plan summary</h3>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.65rem;">Copy and paste into a message or notes.</p>
+      <textarea id="summary-text" readonly></textarea>
+      <div class="form-actions">
+        <button class="btn" onclick="closeSummaryModal()">Close</button>
+        <button class="btn primary" onclick="copySummary()">Copy to clipboard</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay summary-modal" id="import-modal">
+    <div class="modal">
+      <h3>Import summary</h3>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.65rem;">Paste a previously exported summary. This replaces the current plan.</p>
+      <textarea id="import-text" placeholder="Paste summary text here…"></textarea>
+      <div class="form-actions">
+        <button class="btn" onclick="closeImportModal()">Cancel</button>
+        <button class="btn primary" onclick="importSummary()">Import</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const PERIODS = [
+      { id: 'am', label: 'AM · Morning' },
+      { id: 'pm', label: 'PM · Afternoon / Evening' },
+    ];
+
+    const MAX_DAYS = 30;
+    const STORAGE_KEY = 'trip-kanban-v1';
+
+    let memos = [];
+    let bindings = [];
+    let editingId = null;
+    let addTarget = { dayId: null, period: 'am' };
+    let draggedId = null;
+    let days = [];
+    let planTitle = 'Trip Plan';
+    let startDate = null; // 'YYYY-MM-DD' or null
+    let endDate = null;
+    let syncingScroll = false;
+    let isAddingNew = false;
+    let dateSyncLock = false;
+
+    function uid() {
+      return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+
+    function dayUid() {
+      return 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    }
+
+    function parseISODate(str) {
+      if (!str) return null;
+      const m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return null;
+      const d = new Date(+m[1], +m[2] - 1, +m[3]);
+      if (isNaN(d.getTime())) return null;
+      return d;
+    }
+
+    function formatISODate(d) {
+      if (!d || isNaN(d.getTime())) return '';
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + day;
+    }
+
+    function formatDisplayDate(d) {
+      if (!d || isNaN(d.getTime())) return '';
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return d.getDate() + ' ' + months[d.getMonth()];
+    }
+
+    function dateForDayIndex(index) {
+      // index 0-based
+      if (!startDate) return '';
+      const d = parseISODate(startDate);
+      if (!d) return '';
+      d.setDate(d.getDate() + index);
+      return formatDisplayDate(d);
+    }
+
+    function stripDateFromTitle(title) {
+      if (!title) return '';
+      const m = title.match(/^\d{1,2}\s+[A-Za-z]{3}\s*[·•.\-]\s*(.+)$/);
+      return m ? m[1].trim() : title;
+    }
+
+    function syncDayTitles() {
+      days.forEach((d, i) => {
+        d.num = i + 1;
+        const label = d.label || stripDateFromTitle(d.title) || ('Day ' + d.num);
+        d.label = label;
+        const datePart = dateForDayIndex(i);
+        d.title = datePart ? (datePart + ' · ' + label) : label;
+      });
+    }
+
+    function updateDateHint() {
+      const hint = document.getElementById('date-hint');
+      const n = days.length;
+      if (startDate && endDate) {
+        hint.textContent = n + ' day' + (n !== 1 ? 's' : '');
+      } else if (startDate) {
+        hint.textContent = n + ' day' + (n !== 1 ? 's' : '') + ' from start';
+      } else if (endDate) {
+        hint.textContent = n + ' day' + (n !== 1 ? 's' : '') + ' until end';
+      } else {
+        hint.textContent = n + ' day' + (n !== 1 ? 's' : '') + ' · set dates optionally';
+      }
+    }
+
+    function recomputeEndFromStart() {
+      if (!startDate || !days.length) return;
+      const d = parseISODate(startDate);
+      if (!d) return;
+      d.setDate(d.getDate() + days.length - 1);
+      endDate = formatISODate(d);
+      dateSyncLock = true;
+      document.getElementById('date-end').value = endDate;
+      dateSyncLock = false;
+    }
+
+    function recomputeStartFromEnd() {
+      if (!endDate || !days.length) return;
+      const d = parseISODate(endDate);
+      if (!d) return;
+      d.setDate(d.getDate() - (days.length - 1));
+      startDate = formatISODate(d);
+      dateSyncLock = true;
+      document.getElementById('date-start').value = startDate;
+      dateSyncLock = false;
+    }
+
+    function onStartDateChange() {
+      if (dateSyncLock) return;
+      const val = document.getElementById('date-start').value || null;
+      startDate = val;
+      if (startDate) {
+        recomputeEndFromStart();
+      } else if (!endDate) {
+        // both cleared
+      }
+      syncDayTitles();
+      saveState();
+      renderBoard();
+      updateDateHint();
+    }
+
+    function onEndDateChange() {
+      if (dateSyncLock) return;
+      const val = document.getElementById('date-end').value || null;
+      endDate = val;
+      if (endDate) {
+        recomputeStartFromEnd();
+      }
+      syncDayTitles();
+      saveState();
+      renderBoard();
+      updateDateHint();
+    }
+
+    function firstDayId() {
+      return days[0] ? days[0].id : null;
+    }
+
+    /* —— Bindings —— */
+    function isBoundPair(idA, idB) {
+      return bindings.some(p => p.a === idA && p.b === idB);
+    }
+
+    function bindingWithNext(dayId) {
+      const idx = days.findIndex(d => d.id === dayId);
+      if (idx < 0 || idx >= days.length - 1) return null;
+      const nextId = days[idx + 1].id;
+      return bindings.find(p => p.a === dayId && p.b === nextId) || null;
+    }
+
+    function ensureAllBindings() {
+      for (let pass = 0; pass < bindings.length + 2; pass++) {
+        bindings.forEach(p => {
+          const iA = days.findIndex(d => d.id === p.a);
+          const iB = days.findIndex(d => d.id === p.b);
+          if (iA < 0 || iB < 0) return;
+          if (iB === iA + 1) return;
+          const dayA = days[iA];
+          const dayB = days[iB];
+          days = days.filter(d => d.id !== p.a && d.id !== p.b);
+          let insertAt = Math.min(iA, iB);
+          if (insertAt > days.length) insertAt = days.length;
+          days.splice(insertAt, 0, dayA, dayB);
+        });
+      }
+      bindings = bindings.filter(p =>
+        days.some(d => d.id === p.a) && days.some(d => d.id === p.b)
+      );
+    }
+
+    function bindWithNext(dayId) {
+      const idx = days.findIndex(d => d.id === dayId);
+      if (idx < 0 || idx >= days.length - 1) {
+        showToast('No next day to bind');
+        return;
+      }
+      const nextId = days[idx + 1].id;
+      if (isBoundPair(dayId, nextId)) {
+        showToast('Already bound');
+        return;
+      }
+      bindings.push({ a: dayId, b: nextId });
+      ensureAllBindings();
+      syncDayTitles();
+      saveState();
+      renderBoard();
+      showToast('Bound consecutive days');
+    }
+
+    function unbindPair(idA, idB) {
+      bindings = bindings.filter(p => !(p.a === idA && p.b === idB));
+      saveState();
+      renderBoard();
+      showToast('Unbound');
+    }
+
+    function toggleBindWithNext(dayId) {
+      const pair = bindingWithNext(dayId);
+      if (pair) unbindPair(pair.a, pair.b);
+      else bindWithNext(dayId);
+    }
+
+    function getBoundBlock(dayId) {
+      let ids = new Set([dayId]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        bindings.forEach(p => {
+          if (ids.has(p.a) || ids.has(p.b)) {
+            if (!ids.has(p.a)) { ids.add(p.a); changed = true; }
+            if (!ids.has(p.b)) { ids.add(p.b); changed = true; }
+          }
+        });
+      }
+      const indices = days
+        .map((d, i) => (ids.has(d.id) ? i : -1))
+        .filter(i => i >= 0)
+        .sort((a, b) => a - b);
+      if (!indices.length) {
+        const i = days.findIndex(d => d.id === dayId);
+        return { startIndex: i, items: i >= 0 ? [days[i]] : [] };
+      }
+      const startIndex = indices[0];
+      const items = indices.map(i => days[i]);
+      return { startIndex, items };
+    }
+
+    function createDefaultDay(num) {
+      return {
+        id: dayUid(),
+        num: num,
+        label: 'Day ' + num,
+        sub: '',
+        title: 'Day ' + num
+      };
+    }
+
+    function buildEmptyState() {
+      days = [createDefaultDay(1)];
+      memos = [];
+      bindings = [];
+      planTitle = 'Trip Plan';
+      startDate = null;
+      endDate = null;
+      syncDayTitles();
+    }
+
+    function loadState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const data = JSON.parse(saved);
+          memos = data.memos || [];
+          bindings = Array.isArray(data.bindings) ? data.bindings : [];
+          planTitle = data.planTitle || 'Trip Plan';
+          startDate = data.startDate || null;
+          endDate = data.endDate || null;
+          if (data.days && data.days.length) {
+            days = data.days;
+            days.forEach(d => { if (!d.label) d.label = stripDateFromTitle(d.title) || 'Day'; });
+          } else {
+            days = [createDefaultDay(1)];
+          }
+          ensureAllBindings();
+          syncDayTitles();
+          return;
+        }
+      } catch (e) {}
+      buildEmptyState();
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        memos, days, bindings, planTitle, startDate, endDate
+      }));
+    }
+
+    function updateTitleUI() {
+      const t = document.getElementById('plan-title');
+      t.textContent = planTitle;
+      document.title = planTitle;
+    }
+
+    function updateAddDayBtn() {
+      const btn = document.getElementById('btn-add-day');
+      btn.disabled = days.length >= MAX_DAYS;
+      btn.title = days.length >= MAX_DAYS ? 'Maximum ' + MAX_DAYS + ' days' : 'Add a day (max ' + MAX_DAYS + ')';
+    }
+
+    function addDay() {
+      if (days.length >= MAX_DAYS) {
+        showToast('Maximum ' + MAX_DAYS + ' days');
+        return;
+      }
+      const d = createDefaultDay(days.length + 1);
+      days.push(d);
+      if (startDate) recomputeEndFromStart();
+      else if (endDate) recomputeStartFromEnd();
+      syncDayTitles();
+      saveState();
+      renderBoard();
+      showToast('Added Day ' + d.num);
+    }
+
+    function deleteDay(dayId) {
+      if (days.length <= 1) {
+        showToast('Keep at least one day');
+        return;
+      }
+      if (!confirm('Delete this day? Activities will move to the pool.')) return;
+      memos.forEach(m => {
+        if (m.dayId === dayId) {
+          m.dayId = 'pool';
+          m.period = 'pool';
+          m.start = '';
+          m.end = '';
+        }
+      });
+      bindings = bindings.filter(p => p.a !== dayId && p.b !== dayId);
+      days = days.filter(d => d.id !== dayId);
+      if (startDate) recomputeEndFromStart();
+      else if (endDate) recomputeStartFromEnd();
+      ensureAllBindings();
+      syncDayTitles();
+      saveState();
+      renderBoard();
+      showToast('Day deleted');
+    }
+
+    function formatTimeRange(start, end) {
+      if (!start && !end) return '';
+      if (start && end) return start + ' – ' + end;
+      if (start) return 'from ' + start;
+      return 'until ' + end;
+    }
+
+    function createMemoEl(m) {
+      const el = document.createElement('div');
+      el.className = 'memo ' + m.type;
+      el.draggable = true;
+      el.dataset.id = m.id;
+      const timeStr = formatTimeRange(m.start, m.end);
+      el.innerHTML = `
+        <div class="memo-actions">
+          <button class="memo-btn" title="Edit" onclick="event.stopPropagation(); openEditModal('${m.id}')">✎</button>
+          <button class="memo-btn" title="Delete" onclick="event.stopPropagation(); deleteMemo('${m.id}')">×</button>
+        </div>
+        ${timeStr ? `<div class="memo-time">${timeStr}</div>` : ''}
+        <div class="memo-title">${escapeHtml(m.title)}</div>
+        ${m.note ? `<div class="memo-note">${escapeHtml(m.note)}</div>` : ''}
+        <div class="memo-tags"><span class="memo-tag">${m.type}</span></div>
+      `;
+      el.addEventListener('dragstart', onDragStart);
+      el.addEventListener('dragend', onDragEnd);
+      return el;
+    }
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str || '';
+      return d.innerHTML;
+    }
+
+    function sortByIdSequence(list) {
+      return list.slice().sort((a, b) => {
+        const ia = memos.findIndex(m => m.id === a.id);
+        const ib = memos.findIndex(m => m.id === b.id);
+        return ia - ib;
+      });
+    }
+
+    function renderBoard() {
+      ensureAllBindings();
+      syncDayTitles();
+      const board = document.getElementById('board');
+      board.innerHTML = '';
+
+      days.forEach((day, dayIndex) => {
+        const col = document.createElement('div');
+        col.className = 'day-col';
+        col.dataset.dayId = day.id;
+
+        const boundNext = bindingWithNext(day.id);
+        const boundPrev = dayIndex > 0 && isBoundPair(days[dayIndex - 1].id, day.id);
+        if (boundNext) col.classList.add('bound-left');
+        if (boundPrev) col.classList.add('bound-right');
+
+        const canLeft = dayIndex > 0;
+        const canRight = dayIndex < days.length - 1;
+        const canBindNext = dayIndex < days.length - 1;
+        const canDelete = days.length > 1;
+
+        let bindLabel = '🔗';
+        let bindTitle = 'Bind with next day';
+        let bindClass = 'day-bind-btn';
+        if (boundNext) {
+          bindLabel = '🔓';
+          bindTitle = 'Unbind from next day';
+          bindClass += ' bound';
+        }
+
+        const badge = boundNext
+          ? `<div class="bind-badge">🔗 Bound with Day ${day.num + 1}</div>`
+          : (boundPrev ? `<div class="bind-badge">🔗 Bound with Day ${day.num - 1}</div>` : '');
+
+        col.innerHTML = `
+          <div class="day-col-header">
+            <div class="day-col-header-row">
+              <h2>
+                <span class="day-num">${day.num}</span>
+                <span class="day-title-edit" contenteditable="true" data-day-id="${day.id}" data-field="label" spellcheck="false">${escapeHtml(day.title)}</span>
+              </h2>
+              <div class="day-move-btns">
+                <button class="day-move-btn" title="Move left" ${canLeft ? '' : 'disabled'} onclick="moveDay('${day.id}', -1)">←</button>
+                <button class="day-move-btn" title="Move right" ${canRight ? '' : 'disabled'} onclick="moveDay('${day.id}', 1)">→</button>
+                <button class="${bindClass}" title="${bindTitle}" ${canBindNext ? '' : 'disabled'} onclick="toggleBindWithNext('${day.id}')">${bindLabel}</button>
+                <button class="day-del-btn" title="Delete day" ${canDelete ? '' : 'disabled'} onclick="deleteDay('${day.id}')">×</button>
+              </div>
+            </div>
+            <div class="day-sub day-sub-edit" contenteditable="true" data-day-id="${day.id}" data-field="sub" spellcheck="false">${escapeHtml(day.sub || '')}</div>
+            ${badge}
+          </div>
+          <div class="slots" id="slots-${day.id}"></div>
+        `;
+        col.querySelectorAll('[contenteditable]').forEach(el => {
+          el.addEventListener('blur', () => {
+            const id = el.dataset.dayId;
+            const field = el.dataset.field;
+            const d = days.find(x => x.id === id);
+            if (!d) return;
+            if (field === 'label') {
+              const raw = el.textContent.trim();
+              d.label = stripDateFromTitle(raw) || raw || ('Day ' + d.num);
+              syncDayTitles();
+              el.textContent = d.title;
+            } else {
+              d[field] = el.textContent.trim();
+            }
+            saveState();
+          });
+          el.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+          });
+        });
+        board.appendChild(col);
+
+        const slotsEl = col.querySelector('.slots');
+        PERIODS.forEach(period => {
+          const slotDiv = document.createElement('div');
+          slotDiv.className = 'slot';
+          slotDiv.dataset.dayId = day.id;
+          slotDiv.dataset.period = period.id;
+          const list = sortByIdSequence(
+            memos.filter(m => m.dayId === day.id && m.period === period.id)
+          );
+          slotDiv.innerHTML = `
+            <div class="slot-label">${period.label}</div>
+            <div class="slot-cards" data-day="${day.id}" data-period="${period.id}"></div>
+            <button type="button" class="slot-add-btn" onclick="openAddToSlot('${day.id}', '${period.id}')">+ Add to ${period.id.toUpperCase()}</button>
+          `;
+          slotDiv.addEventListener('dragover', onDragOver);
+          slotDiv.addEventListener('dragleave', onDragLeave);
+          slotDiv.addEventListener('drop', onDrop);
+          slotsEl.appendChild(slotDiv);
+
+          const cardsEl = slotDiv.querySelector('.slot-cards');
+          list.forEach(m => cardsEl.appendChild(createMemoEl(m)));
+        });
+      });
+
+      const poolCol = document.createElement('div');
+      poolCol.className = 'pool-col';
+      poolCol.innerHTML = `
+        <div class="day-col-header">
+          <h2 style="font-size:0.9rem;font-weight:650;">📋 Pool</h2>
+          <div class="day-sub">Unscheduled · drag to a day to schedule</div>
+        </div>
+        <div class="pool-add-zone">
+          <button type="button" class="pool-add-btn" onclick="openAddToPool()">+ Add to pool</button>
+        </div>
+        <div class="slots">
+          <div class="slot" data-day-id="pool" data-period="pool">
+            <div class="slot-cards" data-day="pool" data-period="pool" id="pool-cards"></div>
+          </div>
+        </div>
+      `;
+      const poolSlot = poolCol.querySelector('.slot');
+      poolSlot.addEventListener('dragover', onDragOver);
+      poolSlot.addEventListener('dragleave', onDragLeave);
+      poolSlot.addEventListener('drop', onDrop);
+      board.appendChild(poolCol);
+
+      const poolCards = document.getElementById('pool-cards');
+      sortByIdSequence(memos.filter(m => m.dayId === 'pool')).forEach(m => {
+        poolCards.appendChild(createMemoEl(m));
+      });
+
+      updateTitleUI();
+      updateAddDayBtn();
+      updateDateHint();
+      requestAnimationFrame(updateHScrollSpacer);
+    }
+
+    function moveDay(dayId, direction) {
+      ensureAllBindings();
+      const { startIndex, items } = getBoundBlock(dayId);
+      if (!items.length) return;
+
+      const len = items.length;
+      const newStart = startIndex + direction;
+      if (newStart < 0 || newStart + len > days.length) {
+        showToast('Cannot move further');
+        return;
+      }
+
+      const block = days.splice(startIndex, len);
+      days.splice(newStart, 0, ...block);
+
+      ensureAllBindings();
+      syncDayTitles();
+      saveState();
+      renderBoard();
+      showToast(direction < 0 ? 'Moved left' : 'Moved right');
+    }
+
+    function onDragStart(e) {
+      const card = e.target.closest('.memo');
+      const id = card && card.dataset.id;
+      if (!id) { e.preventDefault(); return; }
+      draggedId = id;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', id);
+    }
+    function onDragEnd(e) {
+      const card = e.target.closest('.memo');
+      if (card) card.classList.remove('dragging');
+      document.querySelectorAll('.slot').forEach(s => s.classList.remove('drag-over'));
+      draggedId = null;
+    }
+    function onDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      e.currentTarget.classList.add('drag-over');
+    }
+    function onDragLeave(e) {
+      e.currentTarget.classList.remove('drag-over');
+    }
+    function onDrop(e) {
+      e.preventDefault();
+      const slot = e.currentTarget;
+      slot.classList.remove('drag-over');
+      const id = e.dataTransfer.getData('text/plain') || draggedId;
+      if (!id) return;
+      const dayId = slot.dataset.dayId;
+      const period = slot.dataset.period;
+      const memo = memos.find(m => m.id === id);
+      if (!memo) return;
+
+      memo.dayId = dayId;
+      if (dayId === 'pool') {
+        memo.period = 'pool';
+        memo.start = '';
+        memo.end = '';
+      } else {
+        memo.period = period === 'pm' ? 'pm' : 'am';
+      }
+      saveState();
+      renderBoard();
+      showToast('Moved: ' + memo.title);
+    }
+
+    function fillDaySelect(selectedId) {
+      const sel = document.getElementById('f-day');
+      sel.innerHTML = '';
+      days.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = 'Day ' + d.num + ' · ' + (d.label || d.title);
+        if (d.id === selectedId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      const poolOpt = document.createElement('option');
+      poolOpt.value = 'pool';
+      poolOpt.textContent = '📋 Pool';
+      if (selectedId === 'pool') poolOpt.selected = true;
+      sel.appendChild(poolOpt);
+    }
+
+    function syncPeriodVisibility() {
+      const daySel = document.getElementById('f-day');
+      const periodWrap = document.getElementById('f-period-wrap');
+      if (!daySel || !periodWrap) return;
+      periodWrap.style.display = daySel.value === 'pool' ? 'none' : 'block';
+    }
+
+    function openEditModal(id) {
+      const m = memos.find(x => x.id === id);
+      if (!m) return;
+      editingId = id;
+      isAddingNew = false;
+      addTarget = { dayId: m.dayId, period: m.period };
+      document.getElementById('modal-title').textContent = 'Edit activity';
+      document.getElementById('f-title').value = m.title;
+      document.getElementById('f-note').value = m.note || '';
+      document.getElementById('f-start').value = m.start || '';
+      document.getElementById('f-end').value = m.end || '';
+      document.getElementById('f-type').value = m.type;
+      document.getElementById('f-period').value = (m.period === 'pm') ? 'pm' : 'am';
+      document.getElementById('f-day-wrap').style.display = 'none';
+      document.getElementById('f-period-wrap').style.display = m.dayId === 'pool' ? 'none' : 'block';
+      document.getElementById('modal').classList.add('show');
+      document.getElementById('f-title').focus();
+    }
+
+    function openAddModalForNew() {
+      editingId = null;
+      isAddingNew = true;
+      const fid = firstDayId();
+      addTarget = { dayId: fid, period: 'am' };
+      document.getElementById('modal-title').textContent = 'Add activity';
+      document.getElementById('f-title').value = '';
+      document.getElementById('f-note').value = '';
+      document.getElementById('f-start').value = '';
+      document.getElementById('f-end').value = '';
+      document.getElementById('f-type').value = 'nature';
+      document.getElementById('f-period').value = 'am';
+      fillDaySelect(fid);
+      document.getElementById('f-day-wrap').style.display = 'block';
+      document.getElementById('f-day').onchange = syncPeriodVisibility;
+      syncPeriodVisibility();
+      document.getElementById('modal').classList.add('show');
+      document.getElementById('f-title').focus();
+    }
+
+    function openAddToPool() {
+      editingId = null;
+      isAddingNew = true;
+      addTarget = { dayId: 'pool', period: 'pool' };
+      document.getElementById('modal-title').textContent = 'Add to pool';
+      document.getElementById('f-title').value = '';
+      document.getElementById('f-note').value = '';
+      document.getElementById('f-start').value = '';
+      document.getElementById('f-end').value = '';
+      document.getElementById('f-type').value = 'culture';
+      document.getElementById('f-period').value = 'am';
+      fillDaySelect('pool');
+      document.getElementById('f-day-wrap').style.display = 'block';
+      document.getElementById('f-day').onchange = syncPeriodVisibility;
+      syncPeriodVisibility();
+      document.getElementById('modal').classList.add('show');
+      document.getElementById('f-title').focus();
+    }
+
+    function openAddToSlot(dayId, period) {
+      editingId = null;
+      isAddingNew = true;
+      addTarget = { dayId, period };
+      document.getElementById('modal-title').textContent = 'Add activity';
+      document.getElementById('f-title').value = '';
+      document.getElementById('f-note').value = '';
+      document.getElementById('f-start').value = '';
+      document.getElementById('f-end').value = '';
+      document.getElementById('f-type').value = 'nature';
+      document.getElementById('f-period').value = period === 'pm' ? 'pm' : 'am';
+      fillDaySelect(dayId);
+      document.getElementById('f-day-wrap').style.display = 'block';
+      document.getElementById('f-day').onchange = syncPeriodVisibility;
+      syncPeriodVisibility();
+      document.getElementById('modal').classList.add('show');
+      document.getElementById('f-title').focus();
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.remove('show');
+      editingId = null;
+      isAddingNew = false;
+      document.getElementById('f-day-wrap').style.display = 'none';
+      document.getElementById('f-period-wrap').style.display = 'block';
+    }
+
+    function saveMemo() {
+      const title = document.getElementById('f-title').value.trim();
+      if (!title) { showToast('Title is required'); return; }
+      const note = document.getElementById('f-note').value.trim();
+      const type = document.getElementById('f-type').value;
+      const start = document.getElementById('f-start').value;
+      const end = document.getElementById('f-end').value;
+      let period = document.getElementById('f-period').value;
+
+      if (editingId) {
+        const m = memos.find(x => x.id === editingId);
+        if (m) {
+          m.title = title;
+          m.note = note;
+          m.type = type;
+          m.start = start;
+          m.end = end;
+          if (m.dayId !== 'pool') m.period = period;
+        }
+      } else {
+        let dayId = addTarget.dayId || firstDayId();
+        if (isAddingNew) {
+          const sel = document.getElementById('f-day');
+          if (sel && sel.value) dayId = sel.value;
+        }
+        if (dayId === 'pool') period = 'pool';
+        memos.push({
+          id: uid(),
+          dayId,
+          period: dayId === 'pool' ? 'pool' : (period || 'am'),
+          title, note, type,
+          start: dayId === 'pool' ? '' : start,
+          end: dayId === 'pool' ? '' : end
+        });
+      }
+      saveState();
+      closeModal();
+      renderBoard();
+      showToast(editingId ? 'Updated' : 'Added');
+    }
+
+    function deleteMemo(id) {
+      if (!confirm('Delete this activity?')) return;
+      memos = memos.filter(m => m.id !== id);
+      saveState();
+      renderBoard();
+      showToast('Deleted');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1800);
+    }
+
+    function resetBoard() {
+      if (!confirm('Reset to an empty 1-day plan? Your changes will be lost.')) return;
+      buildEmptyState();
+      document.getElementById('date-start').value = '';
+      document.getElementById('date-end').value = '';
+      saveState();
+      renderBoard();
+      showToast('Reset to empty plan');
+    }
+
+    function buildSummaryText() {
+      const lines = [];
+      lines.push(planTitle || 'Trip Plan');
+      if (startDate || endDate) {
+        lines.push('Dates: ' + (startDate || '?') + ' → ' + (endDate || '?'));
+      }
+      if (bindings.length) {
+        lines.push('Bound: ' + bindings.map(p => {
+          const na = days.find(d => d.id === p.a);
+          const nb = days.find(d => d.id === p.b);
+          return (na ? 'Day ' + na.num : p.a) + '+' + (nb ? 'Day ' + nb.num : p.b);
+        }).join(', '));
+      }
+      lines.push('─'.repeat(28));
+      days.forEach(day => {
+        lines.push('');
+        lines.push(`Day ${day.num} · ${day.title}`);
+        if (day.sub) lines.push(`  (${day.sub})`);
+        PERIODS.forEach(period => {
+          const list = sortByIdSequence(memos.filter(m => m.dayId === day.id && m.period === period.id));
+          if (!list.length) return;
+          lines.push(`  ${period.id.toUpperCase()}`);
+          list.forEach(m => {
+            const t = formatTimeRange(m.start, m.end);
+            lines.push(`  • ${m.title}${t ? ' [' + t + ']' : ''}${m.note ? ' — ' + m.note : ''}`);
+          });
+        });
+      });
+      const pool = sortByIdSequence(memos.filter(m => m.dayId === 'pool'));
+      lines.push('');
+      lines.push('📋 Pool');
+      if (pool.length) {
+        pool.forEach(m => lines.push(`  • ${m.title}${m.note ? ' — ' + m.note : ''}`));
+      } else {
+        lines.push('  (none)');
+      }
+      lines.push('');
+      lines.push('─'.repeat(28));
+      return lines.join('\n');
+    }
+
+    function exportSummary() {
+      document.getElementById('summary-text').value = buildSummaryText();
+      document.getElementById('summary-modal').classList.add('show');
+    }
+    function closeSummaryModal() {
+      document.getElementById('summary-modal').classList.remove('show');
+    }
+    async function copySummary() {
+      const text = document.getElementById('summary-text').value;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard');
+      } catch (e) {
+        document.getElementById('summary-text').select();
+        try { document.execCommand('copy'); showToast('Copied to clipboard'); }
+        catch (e2) { showToast('Select text and copy manually'); }
+      }
+    }
+
+    function openImportModal() {
+      document.getElementById('import-text').value = '';
+      document.getElementById('import-modal').classList.add('show');
+      document.getElementById('import-text').focus();
+    }
+    function closeImportModal() {
+      document.getElementById('import-modal').classList.remove('show');
+    }
+
+    function parseTimeBit(s) {
+      let start = '', end = '';
+      const m = s.match(/\[([^\]]+)\]/);
+      if (!m) return { start, end, rest: s };
+      const inner = m[1].trim();
+      const range = inner.match(/^(\d{1,2}:\d{2})\s*[–\-]\s*(\d{1,2}:\d{2})$/);
+      if (range) { start = range[1]; end = range[2]; }
+      else {
+        const from = inner.match(/^from\s+(\d{1,2}:\d{2})$/i);
+        const until = inner.match(/^until\s+(\d{1,2}:\d{2})$/i);
+        if (from) start = from[1];
+        if (until) end = until[1];
+      }
+      return { start, end, rest: s.replace(m[0], '').trim() };
+    }
+
+    function guessType(title) {
+      const t = title.toLowerCase();
+      if (/land|transfer|flybus|departure|return|airport|kef|drive|pickup|drop/.test(t)) return 'drive';
+      if (/lunch|dinner|breakfast|food|mokka|cafe|kaffi|roasters/.test(t)) return 'food';
+      if (/museum|church|hallgr|harpa|walk|city|cinema|12 tónar|paradís|phallolog/.test(t)) return 'culture';
+      if (/hotel|free|recovery|bookstore|zimsen|vesturb/.test(t)) return 'relax';
+      if (/★|waterfall|glacier|beach|cave|golden|northern|coast|lagoon|diamond|geysir|gullfoss/.test(t)) return 'nature';
+      return 'culture';
+    }
+
+    function parseSummary(text) {
+      const lines = text.replace(/\r\n/g, '\n').split('\n');
+      const newDays = [];
+      const newMemos = [];
+      let currentDay = null;
+      let currentPeriod = 'am';
+      let inPool = false;
+      let importedBindings = [];
+      let importedTitle = null;
+      let importedStart = null;
+      let importedEnd = null;
+
+      for (let raw of lines) {
+        const line = raw.replace(/\s+$/, '');
+        if (!line.trim() || /^[─\-═]+$/.test(line.trim())) continue;
+
+        if (/Iceland\s+\d+-Day/i.test(line) || line.includes('🇮🇸')) {
+          importedTitle = line.replace(/🇮🇸\s*/, '').trim();
+          continue;
+        }
+
+        const datesLine = line.match(/^Dates:\s*(.+?)\s*→\s*(.+)$/i);
+        if (datesLine) {
+          const s = datesLine[1].trim();
+          const e = datesLine[2].trim();
+          if (/^\d{4}-\d{2}-\d{2}$/.test(s)) importedStart = s;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(e)) importedEnd = e;
+          continue;
+        }
+
+        // First non-empty non-separator line that isn't Day/Pool/Bound/Dates can be title
+        if (!importedTitle && !/^Day\s+\d+/i.test(line) && !/^Bound:/i.test(line) && !/^📋?\s*Pool/i.test(line) && !/^Dates:/i.test(line)) {
+          importedTitle = line.trim();
+          continue;
+        }
+
+        const boundLine = line.match(/^Bound:\s*(.+)$/i);
+        if (boundLine) {
+          boundLine[1].split(',').forEach(part => {
+            const m = part.trim().match(/Day\s+(\d+)\s*\+\s*Day\s+(\d+)/i);
+            if (m) importedBindings.push({ na: parseInt(m[1], 10), nb: parseInt(m[2], 10) });
+          });
+          continue;
+        }
+
+        if (/^📋?\s*Pool/i.test(line.trim()) || /Unassigned/i.test(line)) {
+          inPool = true;
+          currentDay = null;
+          continue;
+        }
+        if (inPool && /^\s*\(none\)\s*$/i.test(line)) continue;
+
+        const dayMatch = line.match(/^Day\s+(\d+)\s*[·•.\-]\s*(.+)$/i);
+        if (dayMatch) {
+          inPool = false;
+          const dayCounter = parseInt(dayMatch[1], 10);
+          const fullTitle = dayMatch[2].trim();
+          const label = stripDateFromTitle(fullTitle);
+          let id = 'd' + dayCounter;
+          if (newDays.some(d => d.id === id)) {
+            id = 'd-imp-' + dayCounter + '-' + Math.random().toString(36).slice(2, 5);
+          }
+          currentDay = { id, num: dayCounter, title: fullTitle, label, sub: '' };
+          newDays.push(currentDay);
+          currentPeriod = 'am';
+          continue;
+        }
+
+        const subMatch = line.match(/^\s*\((.+)\)\s*$/);
+        if (subMatch && currentDay && !inPool) {
+          currentDay.sub = subMatch[1].trim();
+          continue;
+        }
+
+        if (/^\s*AM\s*$/i.test(line)) { currentPeriod = 'am'; continue; }
+        if (/^\s*PM\s*$/i.test(line)) { currentPeriod = 'pm'; continue; }
+
+        const bullet = line.match(/^\s*[•\-\*]\s+(.+)$/);
+        if (bullet) {
+          let body = bullet[1].trim();
+          let note = '';
+          const emDash = body.indexOf(' — ');
+          if (emDash > 0) {
+            const before = body.slice(0, emDash);
+            if (!before.includes('[') || before.includes(']')) {
+              note = body.slice(emDash + 3).trim();
+              body = before.trim();
+            }
+          }
+          const { start, end, rest } = parseTimeBit(body);
+          const title = rest.replace(/\s*[—–]\s*$/, '').trim();
+          if (!title) continue;
+
+          if (inPool) {
+            newMemos.push({
+              id: uid(), dayId: 'pool', period: 'pool',
+              title, note, type: guessType(title), start: '', end: ''
+            });
+          } else if (currentDay) {
+            newMemos.push({
+              id: uid(), dayId: currentDay.id, period: currentPeriod,
+              title, note, type: guessType(title), start, end
+            });
+          }
+        }
+      }
+
+      if (!newDays.length) throw new Error('No days found. Paste a full exported summary.');
+
+      const used = new Set();
+      newDays.forEach((d, i) => {
+        d.num = i + 1;
+        if (!d.label) d.label = stripDateFromTitle(d.title);
+        if (used.has(d.id)) d.id = 'd-imp-' + d.num;
+        used.add(d.id);
+      });
+
+      // Apply start date for titles if available
+      if (importedStart) {
+        startDate = importedStart;
+        endDate = importedEnd;
+      }
+
+      newDays.forEach((d, i) => {
+        d.num = i + 1;
+        const datePart = importedStart ? (() => {
+          const dt = parseISODate(importedStart);
+          if (!dt) return '';
+          dt.setDate(dt.getDate() + i);
+          return formatDisplayDate(dt);
+        })() : '';
+        d.title = datePart ? (datePart + ' · ' + (d.label || stripDateFromTitle(d.title))) : (d.label || stripDateFromTitle(d.title));
+      });
+
+      const newBindings = [];
+      importedBindings.forEach(({ na, nb }) => {
+        const da = newDays.find(d => d.num === na);
+        const db = newDays.find(d => d.num === nb);
+        if (da && db) newBindings.push({ a: da.id, b: db.id });
+      });
+
+      return {
+        days: newDays,
+        memos: newMemos,
+        bindings: newBindings,
+        planTitle: importedTitle || 'Trip Plan',
+        startDate: importedStart,
+        endDate: importedEnd
+      };
+    }
+
+    function importSummary() {
+      const text = document.getElementById('import-text').value.trim();
+      if (!text) { showToast('Paste a summary first'); return; }
+      try {
+        const parsed = parseSummary(text);
+        if (!confirm('Replace the current plan with the imported summary?')) return;
+        days = parsed.days;
+        memos = parsed.memos;
+        bindings = parsed.bindings || [];
+        planTitle = parsed.planTitle || 'Trip Plan';
+        startDate = parsed.startDate || null;
+        endDate = parsed.endDate || null;
+        if (startDate && !endDate) recomputeEndFromStart();
+        else if (endDate && !startDate) recomputeStartFromEnd();
+        ensureAllBindings();
+        syncDayTitles();
+        document.getElementById('date-start').value = startDate || '';
+        document.getElementById('date-end').value = endDate || '';
+        saveState();
+        closeImportModal();
+        renderBoard();
+        showToast('Imported ' + days.length + ' days, ' + memos.length + ' activities');
+      } catch (e) {
+        console.error(e);
+        showToast(e.message || 'Import failed');
+      }
+    }
+
+    function updateHScrollSpacer() {
+      const board = document.getElementById('board');
+      const spacer = document.getElementById('board-hscroll-spacer');
+      const wrap = document.getElementById('board-wrap');
+      const track = document.getElementById('board-hscroll-track');
+      if (!board || !spacer || !wrap || !track) return;
+      spacer.style.width = Math.max(board.scrollWidth, wrap.clientWidth + 1) + 'px';
+      if (!syncingScroll) {
+        syncingScroll = true;
+        track.scrollLeft = wrap.scrollLeft;
+        syncingScroll = false;
+      }
+    }
+
+    function bindScrollSync() {
+      const wrap = document.getElementById('board-wrap');
+      const track = document.getElementById('board-hscroll-track');
+      wrap.addEventListener('scroll', () => {
+        if (syncingScroll) return;
+        syncingScroll = true;
+        track.scrollLeft = wrap.scrollLeft;
+        syncingScroll = false;
+      });
+      track.addEventListener('scroll', () => {
+        if (syncingScroll) return;
+        syncingScroll = true;
+        wrap.scrollLeft = track.scrollLeft;
+        syncingScroll = false;
+      });
+      window.addEventListener('resize', updateHScrollSpacer);
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeModal();
+        closeSummaryModal();
+        closeImportModal();
+      }
+    });
+    document.getElementById('modal').addEventListener('click', e => {
+      if (e.target.id === 'modal') closeModal();
+    });
+    document.getElementById('summary-modal').addEventListener('click', e => {
+      if (e.target.id === 'summary-modal') closeSummaryModal();
+    });
+    document.getElementById('import-modal').addEventListener('click', e => {
+      if (e.target.id === 'import-modal') closeImportModal();
+    });
+
+    // Title editing
+    document.getElementById('plan-title').addEventListener('blur', () => {
+      const t = document.getElementById('plan-title');
+      planTitle = t.textContent.trim() || 'Trip Plan';
+      t.textContent = planTitle;
+      document.title = planTitle;
+      saveState();
+    });
+    document.getElementById('plan-title').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+    });
+
+    document.getElementById('date-start').addEventListener('change', onStartDateChange);
+    document.getElementById('date-end').addEventListener('change', onEndDateChange);
+
+    async function exportImage() {
+      showToast('Rendering image…');
+      const board = document.getElementById('board');
+      const wrap = document.getElementById('board-wrap');
+      const cols = Array.from(board.querySelectorAll('.day-col, .pool-col'));
+      const prev = {
+        wrapH: wrap.style.height, wrapO: wrap.style.overflow,
+        boardDisplay: board.style.display, boardFlexDir: board.style.flexDirection,
+        boardFlexWrap: board.style.flexWrap, boardMinW: board.style.minWidth,
+        boardW: board.style.width, boardGap: board.style.gap,
+        colStyles: cols.map(c => ({ w: c.style.width, maxW: c.style.maxWidth, flex: c.style.flex }))
+      };
+      const COL_W = 240, GAP = 10, COLS_PER_ROW = 3;
+      const boardW = COLS_PER_ROW * COL_W + (COLS_PER_ROW - 1) * GAP;
+      wrap.style.height = 'auto';
+      wrap.style.overflow = 'visible';
+      board.style.display = 'flex';
+      board.style.flexDirection = 'row';
+      board.style.flexWrap = 'wrap';
+      board.style.minWidth = '0';
+      board.style.width = boardW + 'px';
+      board.style.gap = GAP + 'px';
+      cols.forEach(col => {
+        col.style.width = COL_W + 'px';
+        col.style.maxWidth = COL_W + 'px';
+        col.style.flex = '0 0 ' + COL_W + 'px';
+      });
+      void board.offsetHeight;
+      board.style.minHeight = board.scrollHeight + 'px';
+      try {
+        const canvas = await html2canvas(board, {
+          backgroundColor: '#0b1220', scale: 2, useCORS: true, logging: false,
+          width: boardW, windowWidth: boardW, windowHeight: board.scrollHeight
+        });
+        const a = document.createElement('a');
+        a.download = 'trip-plan.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        showToast('PNG downloaded');
+      } catch (e) {
+        console.error(e);
+        showToast('Image export failed');
+      } finally {
+        wrap.style.height = prev.wrapH;
+        wrap.style.overflow = prev.wrapO;
+        board.style.display = prev.boardDisplay;
+        board.style.flexDirection = prev.boardFlexDir;
+        board.style.flexWrap = prev.boardFlexWrap;
+        board.style.minWidth = prev.boardMinW;
+        board.style.width = prev.boardW;
+        board.style.gap = prev.boardGap;
+        cols.forEach((col, i) => {
+          if (prev.colStyles[i]) {
+            col.style.width = prev.colStyles[i].w;
+            col.style.maxWidth = prev.colStyles[i].maxW;
+            col.style.flex = prev.colStyles[i].flex;
+          }
+        });
+      }
+    }
+
+    loadState();
+    document.getElementById('date-start').value = startDate || '';
+    document.getElementById('date-end').value = endDate || '';
+    renderBoard();
+    bindScrollSync();
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</body>
+</html>
