@@ -395,6 +395,7 @@
       font-weight: 600;
       line-height: 1.3;
       margin-bottom: 0.08rem;
+      padding-right: 4.2rem;
     }
     .memo-note {
       font-size: 0.68rem;
@@ -421,6 +422,9 @@
       right: 0.25rem;
       display: none;
       gap: 0.12rem;
+      flex-wrap: wrap;
+      max-width: 76px;
+      justify-content: flex-end;
     }
     .memo:hover .memo-actions { display: flex; }
     .memo-btn {
@@ -666,7 +670,7 @@
     let draggedId = null;
     let days = [];
     let planTitle = 'Trip Plan';
-    let startDate = null; // 'YYYY-MM-DD' or null
+    let startDate = null;
     let endDate = null;
     let syncingScroll = false;
     let isAddingNew = false;
@@ -704,7 +708,6 @@
     }
 
     function dateForDayIndex(index) {
-      // index 0-based
       if (!startDate) return '';
       const d = parseISODate(startDate);
       if (!d) return '';
@@ -718,19 +721,18 @@
       return m ? m[1].trim() : title;
     }
 
-function syncDayTitles() {
-  days.forEach((d, i) => {
-    d.num = i + 1;
-    let label = d.label || stripDateFromTitle(d.title) || '';
-    // Default "Day N" labels track the current position after move/delete
-    if (!label || /^Day\s+\d+$/i.test(label.trim())) {
-      label = 'Day ' + d.num;
+    function syncDayTitles() {
+      days.forEach((d, i) => {
+        d.num = i + 1;
+        let label = d.label || stripDateFromTitle(d.title) || '';
+        if (!label || /^Day\s+\d+$/i.test(label.trim())) {
+          label = 'Day ' + d.num;
+        }
+        d.label = label;
+        const datePart = dateForDayIndex(i);
+        d.title = datePart ? (datePart + ' · ' + label) : label;
+      });
     }
-    d.label = label;
-    const datePart = dateForDayIndex(i);
-    d.title = datePart ? (datePart + ' · ' + label) : label;
-  });
-}
 
     function updateDateHint() {
       const hint = document.getElementById('date-hint');
@@ -774,8 +776,6 @@ function syncDayTitles() {
       startDate = val;
       if (startDate) {
         recomputeEndFromStart();
-      } else if (!endDate) {
-        // both cleared
       }
       syncDayTitles();
       saveState();
@@ -800,7 +800,6 @@ function syncDayTitles() {
       return days[0] ? days[0].id : null;
     }
 
-    /* —— Bindings —— */
     function isBoundPair(idA, idB) {
       return bindings.some(p => p.a === idA && p.b === idB);
     }
@@ -899,6 +898,29 @@ function syncDayTitles() {
       };
     }
 
+    function seedDayMemos(dayId) {
+      memos.push({
+        id: uid(),
+        dayId: dayId,
+        period: 'am',
+        title: 'AM activity',
+        note: '',
+        type: 'nature',
+        start: '',
+        end: ''
+      });
+      memos.push({
+        id: uid(),
+        dayId: dayId,
+        period: 'pm',
+        title: 'PM activity',
+        note: '',
+        type: 'culture',
+        start: '',
+        end: ''
+      });
+    }
+
     function buildEmptyState() {
       days = [createDefaultDay(1)];
       memos = [];
@@ -906,6 +928,7 @@ function syncDayTitles() {
       planTitle = 'Trip Plan';
       startDate = null;
       endDate = null;
+      seedDayMemos(days[0].id);
       syncDayTitles();
     }
 
@@ -958,6 +981,7 @@ function syncDayTitles() {
       }
       const d = createDefaultDay(days.length + 1);
       days.push(d);
+      seedDayMemos(d.id);
       if (startDate) recomputeEndFromStart();
       else if (endDate) recomputeStartFromEnd();
       syncDayTitles();
@@ -998,6 +1022,61 @@ function syncDayTitles() {
       return 'until ' + end;
     }
 
+    function memosInSlot(dayId, period) {
+      return memos.filter(m => m.dayId === dayId && m.period === period);
+    }
+
+    function reorderMemoInSlot(id, dayId, period, targetIndex) {
+      const memo = memos.find(m => m.id === id);
+      if (!memo) return;
+      memo.dayId = dayId;
+      memo.period = period;
+
+      const without = memos.filter(m => m.id !== id);
+      const before = [];
+      const slot = [];
+      const after = [];
+      let phase = 'before';
+      for (const m of without) {
+        const inSlot = m.dayId === dayId && m.period === period;
+        if (phase === 'before') {
+          if (inSlot) {
+            phase = 'slot';
+            slot.push(m);
+          } else {
+            before.push(m);
+          }
+        } else if (phase === 'slot') {
+          if (inSlot) slot.push(m);
+          else {
+            phase = 'after';
+            after.push(m);
+          }
+        } else {
+          after.push(m);
+        }
+      }
+      const idx = Math.max(0, Math.min(targetIndex, slot.length));
+      slot.splice(idx, 0, memo);
+      memos = before.concat(slot, after);
+    }
+
+    function moveMemoInSlot(id, direction) {
+      const memo = memos.find(m => m.id === id);
+      if (!memo) return;
+      const slot = memosInSlot(memo.dayId, memo.period);
+      const idx = slot.findIndex(m => m.id === id);
+      const newIdx = idx + direction;
+      if (newIdx < 0 || newIdx >= slot.length) {
+        showToast(direction < 0 ? 'Already at top' : 'Already at bottom');
+        return;
+      }
+      reorderMemoInSlot(id, memo.dayId, memo.period, newIdx);
+      saveState();
+      renderBoard();
+      showToast(direction < 0 ? 'Moved up' : 'Moved down');
+    }
+
     function createMemoEl(m) {
       const el = document.createElement('div');
       el.className = 'memo ' + m.type;
@@ -1006,6 +1085,8 @@ function syncDayTitles() {
       const timeStr = formatTimeRange(m.start, m.end);
       el.innerHTML = `
         <div class="memo-actions">
+          <button class="memo-btn" title="Move up" onclick="event.stopPropagation(); moveMemoInSlot('${m.id}', -1)">↑</button>
+          <button class="memo-btn" title="Move down" onclick="event.stopPropagation(); moveMemoInSlot('${m.id}', 1)">↓</button>
           <button class="memo-btn" title="Edit" onclick="event.stopPropagation(); openEditModal('${m.id}')">✎</button>
           <button class="memo-btn" title="Delete" onclick="event.stopPropagation(); deleteMemo('${m.id}')">×</button>
         </div>
@@ -1217,18 +1298,42 @@ function syncDayTitles() {
       const id = e.dataTransfer.getData('text/plain') || draggedId;
       if (!id) return;
       const dayId = slot.dataset.dayId;
-      const period = slot.dataset.period;
+      let period = slot.dataset.period;
       const memo = memos.find(m => m.id === id);
       if (!memo) return;
 
-      memo.dayId = dayId;
       if (dayId === 'pool') {
-        memo.period = 'pool';
+        period = 'pool';
         memo.start = '';
         memo.end = '';
       } else {
-        memo.period = period === 'pm' ? 'pm' : 'am';
+        period = period === 'pm' ? 'pm' : 'am';
       }
+
+      const cardsEl = slot.querySelector('.slot-cards');
+      let targetIndex = memosInSlot(dayId, period).filter(m => m.id !== id).length;
+      if (cardsEl) {
+        const cards = Array.from(cardsEl.querySelectorAll('.memo'));
+        const y = e.clientY;
+        let insertBeforeId = null;
+        for (let i = 0; i < cards.length; i++) {
+          if (cards[i].dataset.id === id) continue;
+          const rect = cards[i].getBoundingClientRect();
+          if (y < rect.top + rect.height / 2) {
+            insertBeforeId = cards[i].dataset.id;
+            break;
+          }
+        }
+        if (insertBeforeId) {
+          const siblings = memosInSlot(dayId, period).filter(m => m.id !== id);
+          const at = siblings.findIndex(m => m.id === insertBeforeId);
+          targetIndex = at >= 0 ? at : 0;
+        } else {
+          targetIndex = memosInSlot(dayId, period).filter(m => m.id !== id).length;
+        }
+      }
+
+      reorderMemoInSlot(id, dayId, period, targetIndex);
       saveState();
       renderBoard();
       showToast('Moved: ' + memo.title);
@@ -1271,8 +1376,10 @@ function syncDayTitles() {
       document.getElementById('f-end').value = m.end || '';
       document.getElementById('f-type').value = m.type;
       document.getElementById('f-period').value = (m.period === 'pm') ? 'pm' : 'am';
-      document.getElementById('f-day-wrap').style.display = 'none';
-      document.getElementById('f-period-wrap').style.display = m.dayId === 'pool' ? 'none' : 'block';
+      fillDaySelect(m.dayId);
+      document.getElementById('f-day-wrap').style.display = 'block';
+      document.getElementById('f-day').onchange = syncPeriodVisibility;
+      syncPeriodVisibility();
       document.getElementById('modal').classList.add('show');
       document.getElementById('f-title').focus();
     }
@@ -1360,7 +1467,16 @@ function syncDayTitles() {
           m.type = type;
           m.start = start;
           m.end = end;
-          if (m.dayId !== 'pool') m.period = period;
+          const sel = document.getElementById('f-day');
+          const dayId = sel && sel.value ? sel.value : m.dayId;
+          m.dayId = dayId;
+          if (dayId === 'pool') {
+            m.period = 'pool';
+            m.start = '';
+            m.end = '';
+          } else {
+            m.period = period;
+          }
         }
       } else {
         let dayId = addTarget.dayId || firstDayId();
@@ -1534,7 +1650,6 @@ function syncDayTitles() {
           continue;
         }
 
-        // First non-empty non-separator line that isn't Day/Pool/Bound/Dates can be title
         if (!importedTitle && !/^Day\s+\d+/i.test(line) && !/^Bound:/i.test(line) && !/^📋?\s*Pool/i.test(line) && !/^Dates:/i.test(line)) {
           importedTitle = line.trim();
           continue;
@@ -1621,7 +1736,6 @@ function syncDayTitles() {
         used.add(d.id);
       });
 
-      // Apply start date for titles if available
       if (importedStart) {
         startDate = importedStart;
         endDate = importedEnd;
@@ -1732,7 +1846,6 @@ function syncDayTitles() {
       if (e.target.id === 'import-modal') closeImportModal();
     });
 
-    // Title editing
     document.getElementById('plan-title').addEventListener('blur', () => {
       const t = document.getElementById('plan-title');
       planTitle = t.textContent.trim() || 'Trip Plan';
