@@ -1295,10 +1295,10 @@ ${RULE}`;
     }
 
     function resetBoard() {
-      if (!confirm('Reset to the default Iceland 8-day plan? Your changes will be lost.')) return;
+      if (!confirm('Reset to the default plan? Your changes will be lost.')) return;
       buildEmptyState();
       persistAndRender();
-      showToast('Reset to default Iceland plan');
+      showToast('Reset to default plan');
     }
 
     function formatMemoLine(m) {
